@@ -35,5 +35,6 @@ uint8_t get_b(uint32_t color);
 uint8_t get_a(uint32_t color);
 bool in_bounds(struct Image *img, int32_t x, int32_t y);
 uint32_t compute_index(struct Image *img, int32_t x, int32_t y);
+int32_t clamp(int32_t val, int32_t min, int32_t max);
 
 #endif // DRAWING_FUNCS_H

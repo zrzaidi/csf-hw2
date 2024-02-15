@@ -89,6 +89,7 @@ void test_get_g(TestObjs *objs);
 void test_get_b(TestObjs *objs);
 void test_in_bounds(TestObjs *objs);
 void test_compute_index(TestObjs *objs);
+void test_clamp(TestObjs *objs);
 
 int main(int argc, char **argv) {
   if (argc > 1) {
@@ -111,6 +112,7 @@ int main(int argc, char **argv) {
   TEST(test_get_b);
   TEST(test_in_bounds);
   TEST(test_compute_index);
+  TEST(test_clamp);
 
   TEST_FINI();
 }
@@ -321,4 +323,10 @@ void test_compute_index(TestObjs *objs) {
   ASSERT(compute_index(&img, 0, 0) == 0);
   ASSERT(compute_index(&img, 9, 19) == 199);
   ASSERT(compute_index(&img, 5, 10) == 105);
+}
+
+void test_clamp(TestObjs *objs) {
+  ASSERT(clamp(5, 0, 10) == 5);
+  ASSERT(clamp(-5, 0, 10) == 0);
+  ASSERT(clamp(15, 0, 10) == 10);
 }

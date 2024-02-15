@@ -42,6 +42,16 @@ uint32_t compute_index(struct Image *img, int32_t x, int32_t y) {
   return img->width * y + x;
 }
 
+int32_t clamp(int32_t val, int32_t min, int32_t max) {
+  if (val < min) {
+    return min;
+  } else if (val > max) {
+    return max;
+  }
+  return val;
+
+}
+
 ////////////////////////////////////////////////////////////////////////
 // API functions
 ////////////////////////////////////////////////////////////////////////
@@ -72,7 +82,6 @@ void draw_pixel(struct Image *img, int32_t x, int32_t y, uint32_t color) {
     newColor = newColor | ((get_a(color)*get_b(color) + (255 - get_a(color)) * get_b(background)) / 255) << 8;
     newColor = newColor | 255;
   }
-  //std::cout<<newColor<<std::endl;
   img->data[index] = newColor;
 }
 
@@ -90,11 +99,14 @@ void draw_rect(struct Image *img,
                const struct Rect *rect,
                uint32_t color) {
   
-  for(uint32_t i = 0; i < img->width; i++){
-    for(uint32_t j = 0; j < img->height; j++){
-      if ((j >= rect->y) && (j < (rect->y + rect->height)) && (i >= rect->x) && (i < (rect->x + rect->width))) {
+  int32_t x_start = rect->x < 0 ? 0 : rect->x;
+  int32_t y_start = rect->y < 0 ? 0 : rect->y;
+  int32_t x_end = rect->x + rect->width > img->width ? img->width : rect->x + rect->width;
+  int32_t y_end = rect->y + rect->height > img->height ? img->height : rect->y + rect->height;
+
+  for (int32_t i = x_start; i < x_end; i++) {
+    for (int32_t j = y_start; j < y_end; j++) {
         draw_pixel(img, i, j, color);
-      }
     }
   }
 }
