@@ -83,6 +83,12 @@ void test_draw_circle(TestObjs *objs);
 void test_draw_circle_clip(TestObjs *objs);
 void test_draw_tile(TestObjs *objs);
 void test_draw_sprite(TestObjs *objs);
+void test_get_a(TestObjs *objs);
+void test_get_r(TestObjs *objs);
+void test_get_g(TestObjs *objs);
+void test_get_b(TestObjs *objs);
+void test_in_bounds(TestObjs *objs);
+void test_compute_index(TestObjs *objs);
 
 int main(int argc, char **argv) {
   if (argc > 1) {
@@ -99,6 +105,12 @@ int main(int argc, char **argv) {
   TEST(test_draw_circle_clip);
   TEST(test_draw_tile);
   TEST(test_draw_sprite);
+  TEST(test_get_a);
+  TEST(test_get_r);
+  TEST(test_get_g);
+  TEST(test_get_b);
+  TEST(test_in_bounds);
+  TEST(test_compute_index);
 
   TEST_FINI();
 }
@@ -261,4 +273,52 @@ void test_draw_sprite(TestObjs *objs) {
   };
 
   check_picture(&objs->large, &pic);
+}
+
+void test_get_a(TestObjs *objs) {
+  uint32_t color = 0x12345678;
+  ASSERT(get_a(color) == 0x78);
+
+  color = 0x00000000;
+  ASSERT(get_a(color) == 0x00);
+}
+
+void test_get_r(TestObjs *objs) {
+  uint32_t color = 0x12345678;
+  ASSERT(get_r(color) == 0x12);
+
+  color = 0x00000000;
+  ASSERT(get_r(color) == 0x00);
+}
+
+void test_get_g(TestObjs *objs) {
+  uint32_t color = 0x12345678;
+  ASSERT(get_g(color) == 0x34);
+
+  color = 0x00000000;
+  ASSERT(get_g(color) == 0x00);
+}
+
+void test_get_b(TestObjs *objs) {
+  uint32_t color = 0x12345678;
+  ASSERT(get_b(color) == 0x56);
+
+  color = 0x00000000;
+  ASSERT(get_b(color) == 0x00);
+}
+
+void test_in_bounds(TestObjs *objs) {
+  struct Image img = { .width = 10, .height = 20 };
+  ASSERT(in_bounds(&img, 0, 0));
+  ASSERT(in_bounds(&img, 9, 19));
+  ASSERT(!in_bounds(&img, 10, 0));
+  ASSERT(!in_bounds(&img, 0, 20));
+  ASSERT(!in_bounds(&img, 10, 20));
+}
+
+void test_compute_index(TestObjs *objs) {
+  struct Image img = { .width = 10, .height = 20 };
+  ASSERT(compute_index(&img, 0, 0) == 0);
+  ASSERT(compute_index(&img, 9, 19) == 199);
+  ASSERT(compute_index(&img, 5, 10) == 105);
 }

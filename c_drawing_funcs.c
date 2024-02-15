@@ -32,7 +32,7 @@ uint8_t get_a(uint32_t color) {
 }
 
 bool in_bounds(struct Image *img, int32_t x, int32_t y) {
-  if (x > img->width || y > img->height || x < 0 || y < 0) {
+  if (x >= img->width || y >= img->height || x < 0 || y < 0) {
     return false;
   }
   return true;
