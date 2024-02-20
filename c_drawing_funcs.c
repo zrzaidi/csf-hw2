@@ -59,7 +59,12 @@ uint8_t blend_components(uint32_t fg, uint32_t bg, uint32_t alpha) {
 uint32_t blend_colors(uint32_t fg, uint32_t bg) {
   // blend foreground and background colors using the foreground color’s alpha value
   uint32_t fg_alpha = get_a(fg);
-  return blend_components(get_r(fg), get_r(bg), fg_alpha);
+  uint32_t newColor = 0;
+  newColor = newColor | blend_components(get_r(fg), get_r(bg), fg_alpha) << 24;
+  newColor = newColor | blend_components(get_g(fg), get_g(bg), fg_alpha) << 16;
+  newColor = newColor | blend_components(get_b(fg), get_b(bg), fg_alpha) << 8;
+  newColor = newColor | 255;
+  return newColor;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -216,9 +221,9 @@ void draw_sprite(struct Image *img,
     for (uint32_t col = 0; col < sprite->width; col++) {
       for (uint32_t row = 0; row < sprite->height; row++) {
         ind_spritemap = compute_index(spritemap, (sprite->x + col), (sprite->y + row));
-        temp_pixel = blend_colors(spritemap->data[ind_spritemap], img->data[ind_img]);
-        
         ind_img = compute_index(img, (x + col), (y + row));
+
+        temp_pixel = blend_colors(spritemap->data[ind_spritemap], img->data[ind_img]);
         img->data[ind_img] = temp_pixel;
       }
     }
