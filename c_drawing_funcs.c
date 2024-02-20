@@ -175,6 +175,8 @@ void draw_tile(struct Image *img,
   // tile rectangle is not entirely within the bounds of tilemap
   if ((tile->x < 0) || (tile->y < 0) || ((tile->x + tile->width) > tilemap->width) || ((tile->y + tile->height) > tilemap->height)) {
     return;
+  } else if ((x < 0) || (y < 0)) {
+    return;
   } else {
     // proceed to copy pixel data from tilemap to dest image...
     for (uint32_t col = 0; col < tile->width; col++) {
@@ -182,6 +184,9 @@ void draw_tile(struct Image *img,
         ind_tilemap = compute_index(tilemap, (tile->x + col), (tile->y + row));
         temp_pixel = tilemap->data[ind_tilemap];
 
+        if (((x + col) < 0) || ((y + row) < 0)) {
+          return;
+        }
         ind_img = compute_index(img, (x + col), (y + row));
         img->data[ind_img] = temp_pixel;
       }
@@ -215,6 +220,8 @@ void draw_sprite(struct Image *img,
   uint32_t ind_img = 0;
   // tile rectangle is not entirely within the bounds of tilemap
   if ((sprite->x < 0) || (sprite->y < 0) || ((sprite->x + sprite->width) > spritemap->width) || ((sprite->y + sprite->height) > spritemap->height)) {
+    return;
+  } else if (x < 0 || y < 0) {
     return;
   } else {
     // proceed to copy pixel data from tilemap to dest image...
