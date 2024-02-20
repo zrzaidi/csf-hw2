@@ -165,29 +165,23 @@ void draw_tile(struct Image *img,
                const struct Rect *tile) {
   // copy all pixels in the region enclosed by the tile parameter in the tilemap image to the specified x/y coordinates of the destination image
   uint32_t temp_pixel = 0;
-  printf("tilemap width: %d\n", tilemap->width);
-  printf("tilemap height: %d\n", tilemap->height);
-  printf("img width: %d\n", img->width);
-  printf("img height: %d\n", img->height);
+  uint32_t ind_tilemap = 0;
+  uint32_t ind_img = 0;
+  // tile rectangle is not entirely within the bounds of tilemap
+  if ((tile->x < 0) || (tile->y < 0) || ((tile->x + tile->width) > tilemap->width) || ((tile->y + tile->height) > tilemap->height)) {
+    return;
+  } else {
+    // proceed to copy pixel data from tilemap to dest image...
+    for (uint32_t col = 0; col < tile->width; col++) {
+      for (uint32_t row = 0; row < tile->height; row++) {
+        ind_tilemap = compute_index(tilemap, (tile->x + col), (tile->y + row));
+        temp_pixel = tilemap->data[ind_tilemap];
 
-  for(uint32_t row = 0; row < img->height; row++){
-    for(uint32_t col = 0; col < img->width; col++){
-      // check if the pixel is within the tile
-      if (((row >= tile->y) && (row < (tile->y + tile->height))) && ((col >= tile->x) && (col < (tile->x + tile->width)))) {
-        // store pixel from tilemap into temp_pixel
-        temp_pixel = tilemap->data[compute_index(tilemap, col, row)];
-        img->data[compute_index(img, col, row)] = temp_pixel;
-
-        //draw_pixel(img, col, row, temp_pixel);
-        
-        printf("temp_pixel: %d\n", temp_pixel);
-        printf("img pixel: %d\n", img->data[compute_index(img, row, col)]);
+        ind_img = compute_index(img, (x + col), (y + row));
+        img->data[ind_img] = temp_pixel;
       }
     }
   }
-
-  // printf("pixels meant to be copied and pasted: %d\n", tile->width * tile->height);
-  // printf("pixels copied and pasted: %d\n", i);
 }
 
 //
@@ -209,22 +203,24 @@ void draw_sprite(struct Image *img,
                  int32_t x, int32_t y,
                  struct Image *spritemap,
                  const struct Rect *sprite) {
-  // TODO: implement
   // copy all pixels in the region enclosed by the sprite parameter in the spritemap image to the specified x/y coordinates of the destination image
   // The alpha values of the sprite pixels should be used to blend the sprite pixel colors with the background pixel colors.
-  uint32_t* temp_pixel = (uint32_t *)malloc(sizeof(uint32_t));
-
-  for(uint32_t col = 0; col < img->width; col++){
-    for(uint32_t row = 0; row < img->height; row++){
-      // check if the pixel is within the sprite
-      if ((row >= sprite->y) && (row < (sprite->y + sprite->height)) && (col >= sprite->x) && (col < (sprite->x + sprite->width))) {
-        // store pixel from spritemap into temp_pixel
-        *temp_pixel = spritemap->data[spritemap->width * row + col];
-        // store temp_pixel into img (destination image)
-        img->data[img->width * row + col] = blend_colors(*temp_pixel, img->data[img->width * row + col]);
+  uint32_t temp_pixel = 0;
+  uint32_t ind_spritemap = 0;
+  uint32_t ind_img = 0;
+  // tile rectangle is not entirely within the bounds of tilemap
+  if ((sprite->x < 0) || (sprite->y < 0) || ((sprite->x + sprite->width) > spritemap->width) || ((sprite->y + sprite->height) > spritemap->height)) {
+    return;
+  } else {
+    // proceed to copy pixel data from tilemap to dest image...
+    for (uint32_t col = 0; col < sprite->width; col++) {
+      for (uint32_t row = 0; row < sprite->height; row++) {
+        ind_spritemap = compute_index(spritemap, (sprite->x + col), (sprite->y + row));
+        temp_pixel = blend_colors(spritemap->data[ind_spritemap], img->data[ind_img]);
+        
+        ind_img = compute_index(img, (x + col), (y + row));
+        img->data[ind_img] = temp_pixel;
       }
     }
   }
-
-  free(temp_pixel);
 }
