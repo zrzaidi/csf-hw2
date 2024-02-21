@@ -72,6 +72,21 @@ out_of_bounds_y:
 	xorq %rax, %rax
 	ret
 
+blend_components:
+	movq %rdi, %rax
+	imul %rdx, %rax
+	movq $255, %rcx
+	sub %rdx, %rcx
+	imul %rsi, %rcx
+	add %rcx, %rax
+	movq 255, %r8
+	idiv %r8
+	ret
+
+blend_colors:
+	call get_a
+
+	ret
 
 /***********************************************************************
    Public API functions
