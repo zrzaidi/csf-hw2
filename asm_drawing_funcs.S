@@ -23,6 +23,56 @@
 
 /* TODO: implement your helper functions here */
 
+get_r:
+	movq %rdi, %rax
+	shrq $24, %rax
+	andl $0xFF, %eax
+	ret
+
+get_g:
+	movq %rdi, %rax
+	shrq $16, %rax
+	andl $0xFF, %eax
+	ret
+
+get_b:
+	movq %rdi, %rax
+	shrq $8, %rax
+	andl $0xFF, %eax
+	ret
+
+get_a:
+	movq %rdi, %rax
+	andl $0xFF, %eax
+	ret
+
+compute_index:
+	movq 0(%rdi), %rax
+	imul %rdx, %rax
+	addq %rsi, %rax
+	ret
+
+in_bounds:
+	cmp %rsi, 0(%rdi)
+	jge out_of_bounds_x
+	cmp %rdx, 4(%rdi)
+	jge out_of_bounds_y
+	cmp $0, %rsi
+	jl out_of_bounds_x
+	cmp $0, %rdx
+	jl out_of_bounds_y
+	movq $1, %rax
+	ret
+
+out_of_bounds_x:
+	xorq %rax, %rax
+	ret
+
+out_of_bounds_y:
+	xorq %rax, %rax
+	ret
+
+
 /***********************************************************************
    Public API functions
  ***********************************************************************/
@@ -38,7 +88,19 @@
  */
 	.globl draw_pixel
 draw_pixel:
-	/* TODO: implement */
+	call in_bounds
+	test %rax, %rax
+	je out_of_bounds
+
+	movq %rdx, %r8
+	movq %rsi, %r9
+	call compute_index
+	movq %rax, %r10
+
+	
+
+
+
 	ret
 
 
