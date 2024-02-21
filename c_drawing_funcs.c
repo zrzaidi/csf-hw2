@@ -92,10 +92,7 @@ void draw_pixel(struct Image *img, int32_t x, int32_t y, uint32_t color) {
   if (get_a(color) == 255) {
     newColor = color;
   } else {
-    newColor = ((get_a(color)*get_r(color) + (255 - get_a(color)) * get_r(background)) / 255) << 24;
-    newColor = newColor | ((get_a(color)*get_g(color) + (255 - get_a(color)) * get_g(background)) / 255) << 16;
-    newColor = newColor | ((get_a(color)*get_b(color) + (255 - get_a(color)) * get_b(background)) / 255) << 8;
-    newColor = newColor | 255;
+    newColor = blend_colors(color, background);
   }
   img->data[index] = newColor;
 }
