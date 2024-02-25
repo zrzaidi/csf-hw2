@@ -22,36 +22,41 @@
  ***********************************************************************/
 
 /* TODO: implement your helper functions here */
-
+.globl get_r
 get_r:
 	movq %rdi, %rax
 	shrq $24, %rax
 	andl $0xFF, %eax
 	ret
 
+.globl get_g
 get_g:
 	movq %rdi, %rax
 	shrq $16, %rax
 	andl $0xFF, %eax
 	ret
 
+.globl get_b
 get_b:
 	movq %rdi, %rax
 	shrq $8, %rax
 	andl $0xFF, %eax
 	ret
 
+.globl get_a
 get_a:
 	movq %rdi, %rax
 	andl $0xFF, %eax
 	ret
 
+.globl compute_index
 compute_index:
 	movq 0(%rdi), %rax
 	imul %rdx, %rax
 	addq %rsi, %rax
 	ret
 
+.globl in_bounds
 in_bounds:
 	cmp %rsi, 0(%rdi)
 	jge out_of_bounds_x
@@ -64,14 +69,17 @@ in_bounds:
 	movq $1, %rax
 	ret
 
+.globl out_of_bounds_x
 out_of_bounds_x:
 	xorq %rax, %rax
 	ret
 
+.globl out_of_bounds_y
 out_of_bounds_y:
 	xorq %rax, %rax
 	ret
 
+.globl blend_components
 blend_components:
 	movq %rdi, %rax
 	imul %rdx, %rax
@@ -79,14 +87,75 @@ blend_components:
 	sub %rdx, %rcx
 	imul %rsi, %rcx
 	add %rcx, %rax
-	movq 255, %r8
+	movq $255, %r8
 	idiv %r8
 	ret
 
+.globl blend_colors
 blend_colors:
-	call get_a
+    pushq %rbp
+    movq %rsp, %rbp
+    subq $16, %rsp
+    pushq %rbx
+    pushq %r12
+    pushq %r13
+    pushq %r14
+    pushq %r15
 
-	ret
+    movq (%rdi), %rdi
+    call get_a
+    movq %rax, %rbx
+
+    movq (%rdi), %rdi
+    call get_r
+    movq %rax, %r12
+    movq (%rsi), %rdi
+    call get_r
+    movq %rax, %r13
+    movq %r12, %rdi
+    movq %r13, %rsi
+    movq %rbx, %rdx
+    call blend_components
+    shll $24, %eax
+    movq %rax, %r14
+
+    movq (%rdi), %rdi
+    call get_g
+    movq %rax, %r12
+    movq (%rsi), %rdi
+    call get_g
+    movq %rax, %r13
+    movq %r12, %rdi
+    movq %r13, %rsi
+    movq %rbx, %rdx
+    call blend_components
+    shll $16, %eax
+    orl %eax, %r14d
+
+    movq (%rdi), %rdi
+    call get_b
+    movq %rax, %r12
+    movq (%rsi), %rdi
+    call get_b
+    movq %rax, %r13
+    movq %r12, %rdi
+    movq %r13, %rsi
+    movq %rbx, %rdx
+    call blend_components
+    shll $8, %eax
+    orl %eax, %r14d
+
+    orl $255, %r14d
+    movq %r14, %rax
+
+    popq %r15
+    popq %r14
+    popq %r13
+    popq %r12
+    popq %rbx
+    movq %rbp, %rsp
+    popq %rbp
+    ret
 
 /***********************************************************************
    Public API functions
@@ -105,7 +174,7 @@ blend_colors:
 draw_pixel:
 	call in_bounds
 	test %rax, %rax
-	je out_of_bounds
+	je out_of_bounds_x
 
 	movq %rdx, %r8
 	movq %rsi, %r9
