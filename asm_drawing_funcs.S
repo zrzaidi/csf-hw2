@@ -315,7 +315,45 @@ draw_circle:
  */
 	.globl draw_tile
 draw_tile:
-	/* TODO: implement */
+	/* Saving to Register */
+	pushq %rbx
+	pushq %rbp
+	pushq %r12
+	pushq %r13
+	pushq %r14
+	pushq %r15
+	subq $40, %rsp
+
+	/* Saving to callee-saved registers */
+	movl %rdi, %ebx, /* store pointer to dest img */
+	movl %esi, %ebp /* store x-coord */
+	movl %edx, %r12d /* store y-coord */
+	movl %rcx, %r13d /* store pointer to tilemap */
+	movl %r8, %r14d /* store pointer to tile */
+	movq $0, %r15 /* placeholder for loop variable */
+	
+	/* Save img fields using offsets */ 
+	movl IMAGE_WIDTH_OFFSET(%ebx) /* img->width */
+	movl IMAGE_HEIGHT_OFFSET(%ebx) /* img->height */
+	movl IMAGE_DATA_OFFSET(%ebx) /* img->data */
+
+	/* Save tile fields using offsets */
+	movl RECT_X_OFFSET(%r14d) /* tile->x */
+	movl RECT_Y_OFFSET(%r14d) /* tile->y */
+	movl RECT_WIDTH_OFFSET(%r14d) /* tile->width */
+	movl RECT_HEIGHT_OFFSET(%r14d) /* tile->height */
+
+	/* Saving to Stack */
+	pushl 0(%rsp) /* temp_pixel */
+	pushl 4(%rsp) /* ind_tilemap */
+	pushl 8(%rsp) /* ind_img (dest img) */
+	pushl 12(%rsp) /* x_min */
+	pushl 16(%rsp) /* x_max */
+	pushl 20(%rsp) /* y_min */
+	pushl 24(%rsp) /* y_max */
+	pushl 28(%rsp) /* blend */
+	pushl 32(%rsp) /* tile->x */
+	pushl 36(%rsp) /* tile->y */
 	ret
 
 /*
