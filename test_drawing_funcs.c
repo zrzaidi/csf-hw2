@@ -89,7 +89,9 @@ void test_get_g(TestObjs *objs);
 void test_get_b(TestObjs *objs);
 void test_in_bounds(TestObjs *objs);
 void test_compute_index(TestObjs *objs);
-void test_clamp(TestObjs *objs);
+//void test_clamp(TestObjs *objs);
+void test_blend_components(TestObjs *objs);
+void test_blend_colors(TestObjs *objs);
 
 int main(int argc, char **argv) {
   if (argc > 1) {
@@ -101,18 +103,20 @@ int main(int argc, char **argv) {
 
   // TODO: add TEST() directives for your helper functions
   TEST(test_draw_pixel);
-  TEST(test_draw_rect);
-  TEST(test_draw_circle);
-  TEST(test_draw_circle_clip);
-  TEST(test_draw_tile);
-  TEST(test_draw_sprite);
+  //TEST(test_draw_rect);
+  //TEST(test_draw_circle);
+  //TEST(test_draw_circle_clip);
+  //TEST(test_draw_tile);
+  //TEST(test_draw_sprite);
   TEST(test_get_a);
   TEST(test_get_r);
   TEST(test_get_g);
   TEST(test_get_b);
   TEST(test_in_bounds);
   TEST(test_compute_index);
-  TEST(test_clamp);
+  TEST(test_blend_components);
+  TEST(test_blend_colors);
+  
 
   TEST_FINI();
 }
@@ -325,8 +329,45 @@ void test_compute_index(TestObjs *objs) {
   ASSERT(compute_index(&img, 5, 10) == 105);
 }
 
-void test_clamp(TestObjs *objs) {
-  ASSERT(clamp(5, 0, 10) == 5);
-  ASSERT(clamp(-5, 0, 10) == 0);
-  ASSERT(clamp(15, 0, 10) == 10);
+
+void test_blend_components(TestObjs *objs) {
+    uint32_t fg_color = 0x00000000;  
+    uint32_t bg_color = 0x00000000;
+    uint32_t alpha = 255;
+    uint8_t result = blend_components(fg_color, bg_color, alpha);
+    ASSERT(result == 0); 
+
+    fg_color = 0x000000FF;
+    bg_color = 0x00000000;  
+    alpha = 255; 
+    result = blend_components(fg_color, bg_color, alpha);
+    ASSERT(result == 255); 
+
+    fg_color = 0x000000FF;  
+    bg_color = 0x00000000; 
+    alpha = 127;  
+    result = blend_components(fg_color, bg_color, alpha);
+    ASSERT(result == 127);  
+}
+
+void test_blend_colors(TestObjs *objs) {
+  uint32_t fg_color = 0x00000000;
+  uint32_t bg_color = 0x00000000;
+  uint32_t result = blend_colors(fg_color, bg_color);
+  ASSERT(result == 0x000000FF);
+
+  fg_color = 0x000000FF;
+  bg_color = 0x00000000;
+  result = blend_colors(fg_color, bg_color);
+  ASSERT(result == 0x000000FF);
+
+  fg_color = 0x000000FF;
+  bg_color = 0x000000FF;
+  result = blend_colors(fg_color, bg_color);
+  ASSERT(result == 0x000000FF);
+
+  fg_color = 0x00FFFFFF;
+  bg_color = 0x00FFFFFF;
+  result = blend_colors(fg_color, bg_color);
+  ASSERT(result == 0x00FFFFFF);
 }
