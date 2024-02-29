@@ -42,16 +42,6 @@ uint32_t compute_index(struct Image *img, int32_t x, int32_t y) {
   return img->width * y + x;
 }
 
-int32_t clamp(int32_t val, int32_t min, int32_t max) {
-  if (val < min) {
-    return min;
-  } else if (val > max) {
-    return max;
-  }
-  return val;
-
-}
-
 uint8_t blend_components(uint32_t fg, uint32_t bg, uint32_t alpha) {
   return (alpha * fg + (255 - alpha) * bg) / 255;
 }

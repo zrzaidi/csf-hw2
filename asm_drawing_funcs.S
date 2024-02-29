@@ -105,8 +105,14 @@ blend_colors:
 	subq $16, %rsp // Align the stack
     pushq %r10
     pushq %rdx
-    
-    movl 0(%ebx), %edi // Load existing color from image data
+    pushq %r11
+    pushq %r12
+    pushq %r13
+    pushq %r14
+    pushq %r15
+    pushq %rdi
+    pushq %rsi
+    pushq %rbx
 
     // Extract RGB components of existing color
     call get_r //get red component
@@ -114,7 +120,7 @@ blend_colors:
     call get_g //get green component
     movl %eax, %r11d //store green component
     call get_b //get blue component
-    movl $0, %r12d //store blue component
+    movl %eax, %r12d //store blue component
 
     // Extract RGB components of incoming color
     movl %edx, %edi  // Incoming color is in ecx
@@ -144,14 +150,25 @@ blend_colors:
     movl %eax, %r12d // Store blended blue component
 
     // Assemble blended color
+    xorl %eax, %eax // Clear eax
+    shl $24, %r10d // Shift left 24 bits
     movl %r10d, %eax // Move red component to eax
-    shl $24, %eax // Shift left 24 bits
+    //shl $24, %eax // Shift left 24 bits
 	shl $16, %r11d  // Shift left 16 bits
     orl %r11d, %eax // Combine with green component
     shl $8, %r12d // Shift left 8 bits
     orl %r12d, %eax // Combine with blue component
 	
 	orl $255, %eax // Set alpha to 255
+    
+    popq %rbx
+    popq %rsi
+    popq %rdi
+    popq %r15
+    popq %r14
+    popq %r13
+    popq %r12
+    popq %r11
     popq %rdx
     popq %r10
 
@@ -175,32 +192,52 @@ blend_colors:
 	.globl draw_pixel
 draw_pixel:
 	pushq %rdi
+    pushq %r8
+    pushq %r9
+    pushq %r10
+    pushq %r11
+    pushq %rbx
+
 	subq $16, %rsp  // Align the stack
 
     call in_bounds // Check if the pixel is in bounds
-    test %eax, %eax // Test the result
-    je out_of_bounds // If not in bounds, jump to out_of_bounds
+    cmp $0, %rax // Test the result
+    je .out_of_bounds // If not in bounds, jump to out_of_bounds
 
     movq 8(%rdi), %rbx // Load the image data array
     movl %edx, %r8d // Move the y coordinate to r8d for compute_index
     movl %esi, %r9d  // Move the x coordinate to r9d for compute_index
     call compute_index // Compute the index into the image data array
     movl %eax, %r10d // Move the index to r10d for the address calculation
-    imull $4, %r10d // Multiply the index by 4 to get the byte offset
-    addl %r10d, %ebx // Add the index to the image data array address
+    //imull $4, %r10d // Multiply the index by 4 to get the byte offset
+    //addl %r10d, %ebx // Add the index to the image data array address
 
     movl %ecx, %edx   // Move the color value to edx for blend_colors
+    //movl (%ebx), %edi // Load the existing color value from the image data array
+    movl (%rbx, %r10, 4), %edi // Load the existing color value from the image data array
     call blend_colors // Blend the color value with the existing color
 
     // Store the blended color value in the image data array
-	movl %eax, (%ebx) // Store the blended color value
+	movl %eax, (%rbx, %r10, 4) // Store the blended color value
 
     addq $16, %rsp  // Restore the stack
+    popq %rbx
+    popq %r11
+    popq %r10
+    popq %r9
+    popq %r8
 	popq %rdi // Restore the image pointer
     ret
 
-	.globl out_of_bounds
-out_of_bounds:
+
+.out_of_bounds:
+    addq $16, %rsp  // Restore the stack
+    popq %rbx
+    popq %r11
+    popq %r10
+    popq %r9
+    popq %r8
+	popq %rdi // Restore the image pointer
     ret // Return if the pixel is out of bounds
 
 
@@ -214,74 +251,98 @@ out_of_bounds:
  *   %rsi     - pointer to struct Rect
  *   %edx     - uint32_t color value
  */
-	.globl draw_rect
+ .globl draw_rect
 draw_rect:
+    subq $16, %rsp // Align the stack
+    pushq %rdi
+    pushq %rsi
     pushq %rbp
-    movq %rsp, %rbp
+    movl %edx, %ebp // Store color value in %rbp
+    movq %rdi, %r15
 
-    /* Load parameters */
-    movq %rdi, %rbx         // img
-    movq %rsi, %rcx         // rect
-    movl %edx, %r8d         // color
+    // Load struct Rect fields
+    movl RECT_X_OFFSET(%rsi), %ecx // Load x coordinate
+    movl RECT_Y_OFFSET(%rsi), %edx // Load y coordinate
+    movl RECT_WIDTH_OFFSET(%rsi), %r8d // Load width
+    movl RECT_HEIGHT_OFFSET(%rsi), %r9d // Load height
 
-    /* Calculate start and end coordinates */
-    movl RECT_X_OFFSET(%rcx), %eax          // rect->x
-    cmpl $0, %eax                           // Compare with 0
-    jge .x_start_positive                   // If x >= 0, jump to x_start_positive
-    xorl %eax, %eax                         // Set x_start to 0
-    jmp .x_start_done                       // Jump to x_start_done
+    // Compute start and end coordinates
+    movl %ecx, %r10d // Set x_start = x
+    cmpl $0, %r10d // Check if x < 0
+    jge .x_non_negative // Jump if x >= 0
+    xorl %r10d, %r10d // Set x_start = 0
+    
+.x_non_negative:
+    movl %r10d, %r14d
+    movl %edx, %r11d // Set y_start = y
+    cmpl $0, %r11d // Check if y < 0
+    jge .y_non_negative // Jump if y >= 0
+    xorl %r11d, %r11d // Set y_start = 0
+.y_non_negative:
+    movl IMAGE_WIDTH_OFFSET(%rdi), %esi // Load image width
+    movl IMAGE_HEIGHT_OFFSET(%rdi), %edi // Load image height
 
-.x_start_positive:
-    movl %eax, %r9d                         // Store x in r9d
-    movl RECT_WIDTH_OFFSET(%rcx), %edx      // rect->width
-    addl %edx, %eax                         // x + width
-    movl IMAGE_WIDTH_OFFSET(%rbx), %edx     // img->width
-    cmpl %eax, %edx                         // Compare x + width with img->width
-    jge .x_start_done                       // If x + width >= img->width, jump to x_start_done
-    movl %eax, %r9d                         // Store x + width in r9d
-    jmp .x_start_done                       // Jump to x_start_done
+    addl %ecx, %r8d // x_end = x + width
+    cmpl %esi, %r8d // Check if x_end > image width
+    jle .x_end_within_bounds // Jump if x_end <= image width
+    movl %esi, %r8d // Set x_end = image width
+.x_end_within_bounds:
+    addl %edx, %r9d // y_end = y + height
+    cmpl %edi, %r9d // Check if y_end > image height
+    jle .y_loop // Jump if y_end <= image height
+    movl %edi, %r9d // Set y_end = image height
+ 
+.y_loop:
+    cmpl %r9d, %r11d // Compare j with y_end
+    jge .y_loop_end // If j >= y_end, exit y loop
 
-.x_start_done:
-    movl RECT_Y_OFFSET(%rcx), %eax          // rect->y
-    cmpl $0, %eax                           // Compare with 0
-    jge .y_start_positive                   // If y >= 0, jump to y_start_positive
-    xorl %eax, %eax                         // Set y_start to 0
-    jmp .y_start_done                       // Jump to y_start_done
-
-.y_start_positive:
-    movl %eax, %r10d                        // Store y in r10d
-    movl RECT_HEIGHT_OFFSET(%rcx), %edx     // rect->height
-    addl %edx, %eax                         // y + height
-    movl IMAGE_HEIGHT_OFFSET(%rbx), %edx    // img->height
-    cmpl %eax, %edx                         // Compare y + height with img->height
-    jge .y_start_done                       // If y + height >= img->height, jump to y_start_done
-    movl %eax, %r10d                        // Store y + height in r10d
-    jmp .y_start_done                       // Jump to y_start_done
-
-.y_start_done:
-    /* Draw the rectangle */
-    movl %r9d, %eax                         // x_start
-    movl %r10d, %edx                        // y_start
-    jmp .check_x_end                        // Jump to check_x_end
-
-.draw_loop:
-    movl %edx, %r10d                        // y
-    pushq %r10                              // Push y to the stack
-    pushq %rax                              // Push x to the stack
-    movl %r8d, %esi                         // color
-    movq %rbx, %rdi                         // img
-    call draw_pixel                         // Call draw_pixel(img, x, y, color)
-    popq %rax                               // Restore x from the stack
-    incl %eax                               // Increment x
-    cmp %r9d, %eax                          // Compare x with x_end
-    jl .draw_loop                           // If x < x_end, loop back to draw_loop
-
-.check_x_end:
-    cmpl %r9d, %eax                         // Compare x with x_end
-    jl .draw_loop                           // If x < x_end, jump to draw_loop
+.x_loop:
+    cmpl %r8d, %r10d // Compare i with x_end
+    jge .x_loop_end // If i >= x_end, exit x loop
+    movq %r15, %rdi
+    movl %r11d, %edx // Move y coordinate to rdi for draw_pixel
+    movl %r10d, %esi // Move x coordinate to rsi for draw_pixel
+    movl %ebp, %ecx // Move color value to rdx for draw_pixel
+    pushq %rdi
+    pushq %rsi
+    pushq %rdx
+    pushq %rcx
+    pushq %r8
+    pushq %r9
+    pushq %r10
+    pushq %r11
+    pushq %r12
+    pushq %r13
+    pushq %r14
+    pushq %r15
+    call draw_pixel // Draw the pixel
+    popq %r15
+    popq %r14
+    popq %r13
+    popq %r12
+    popq %r11
+    popq %r10
+    popq %r9
+    popq %r8
+    popq %rcx
+    popq %rdx
+    popq %rsi
+    popq %rdi
+    incl %r10d // Increment i
+    jmp .x_loop // Repeat x loop
+.x_loop_end:
+    incl %r11d // Increment j
+    movl %r14d, %r10d // Reset i to x_start
+    jmp .y_loop // Repeat y loop
+.y_loop_end:
 
     popq %rbp
+    popq %rsi
+    popq %rdi
+    addq $16, %rsp // Restore the stack
     ret
+
+
 
 /*
  * Draw a circle.
@@ -294,10 +355,87 @@ draw_rect:
  *   %ecx     - radius of circle
  *   %r8d     - uint32_t color value
  */
-	.globl draw_circle
+.globl draw_circle
 draw_circle:
-	/* TODO: implement */
-	ret
+    pushq %rbp
+    movq %rsp, %rbp // Save stack frame
+    subq $128, %rsp // Make room for variables
+
+    movq %rdi, -8(%rbp) // Save parameters
+    movq %rsi, -16(%rbp)
+    movq %rdx, -24(%rbp)
+    movq %rcx, -32(%rbp)
+    movq %r8, -40(%rbp)
+
+    movl 0(%rdi), %r8d // Load image width
+    movl 4(%rdi), %r9d // Load image height
+    movq -16(%rbp), %r10 // Load x (circle center x)
+    movq -24(%rbp), %r11 // Load y (circle center y)
+    movq -32(%rbp), %r12 // Load r (radius)
+    imulq %r12, %r12 // Square r
+    movq %rdi, %rbx
+
+    xorl %esi, %esi // Initialize i (x coordinate)
+.y_loop_c:
+    cmpl %r8d, %esi // Compare i with image width
+    jge .y_loop_end_c // If i >= image width, exit y loop
+
+    xorl %edx, %edx // Initialize j (y coordinate)
+.x_loop_c:
+    cmpl %r9d, %edx // Compare j with image height
+    jge .x_loop_end_c // If j >= image height, exit x loop
+
+    // Calculate radius squared
+    movl %esi, %r14d // Move i (x coordinate) to %r14
+    subq %r10, %r14 // Subtract circle center x
+    imulq %r14, %r14 // Square (x - circle center x)
+    movl %edx, %r15d // Move j (y coordinate) to %r15
+    subq %r11, %r15 // Subtract circle center y
+    imulq %r15, %r15 // Square (y - circle center y)
+    addq %r15, %r14 // Add (x - circle center x)^2 + (y - circle center y)^2
+    cmpq %r12, %r14 // Compare radius squared with r^2
+    jg .skip_draw // If radius squared > r^2, skip drawing pixel
+
+    // Draw pixel
+    movq -40(%rbp), %rcx // Move color value to rdx for draw_pixel
+    movq %rbx, %rdi // Move image pointer to rdi for draw_pixel
+    pushq %rdi
+    pushq %rsi
+    pushq %rdx
+    pushq %rcx
+    pushq %r8
+    pushq %r9
+    pushq %r10
+    pushq %r11
+    pushq %r12
+    pushq %r13
+    pushq %r14
+    pushq %r15
+    call draw_pixel // Draw the pixel
+    popq %r15
+    popq %r14
+    popq %r13
+    popq %r12
+    popq %r11
+    popq %r10
+    popq %r9
+    popq %r8
+    popq %rcx
+    popq %rdx
+    popq %rsi
+    popq %rdi
+
+.skip_draw:
+    incl %edx // Increment j
+    jmp .x_loop_c // Repeat x loop
+.x_loop_end_c:
+    incl %esi // Increment i
+    jmp .y_loop_c // Repeat y loop
+.y_loop_end_c:
+
+    movq %rbp, %rsp // Restore stack pointer
+    popq %rbp // Restore base pointer
+    ret
 
 /*
  * Draw a tile by copying all pixels in the region
@@ -315,45 +453,7 @@ draw_circle:
  */
 	.globl draw_tile
 draw_tile:
-	/* Saving to Register */
-	pushq %rbx
-	pushq %rbp
-	pushq %r12
-	pushq %r13
-	pushq %r14
-	pushq %r15
-	subq $40, %rsp
-
-	/* Saving to callee-saved registers */
-	movl %rdi, %ebx, /* store pointer to dest img */
-	movl %esi, %ebp /* store x-coord */
-	movl %edx, %r12d /* store y-coord */
-	movl %rcx, %r13d /* store pointer to tilemap */
-	movl %r8, %r14d /* store pointer to tile */
-	movq $0, %r15 /* placeholder for loop variable */
-	
-	/* Save img fields using offsets */ 
-	movl IMAGE_WIDTH_OFFSET(%ebx) /* img->width */
-	movl IMAGE_HEIGHT_OFFSET(%ebx) /* img->height */
-	movl IMAGE_DATA_OFFSET(%ebx) /* img->data */
-
-	/* Save tile fields using offsets */
-	movl RECT_X_OFFSET(%r14d) /* tile->x */
-	movl RECT_Y_OFFSET(%r14d) /* tile->y */
-	movl RECT_WIDTH_OFFSET(%r14d) /* tile->width */
-	movl RECT_HEIGHT_OFFSET(%r14d) /* tile->height */
-
-	/* Saving to Stack */
-	pushl 0(%rsp) /* temp_pixel */
-	pushl 4(%rsp) /* ind_tilemap */
-	pushl 8(%rsp) /* ind_img (dest img) */
-	pushl 12(%rsp) /* x_min */
-	pushl 16(%rsp) /* x_max */
-	pushl 20(%rsp) /* y_min */
-	pushl 24(%rsp) /* y_max */
-	pushl 28(%rsp) /* blend */
-	pushl 32(%rsp) /* tile->x */
-	pushl 36(%rsp) /* tile->y */
+	/* TODO: implement */
 	ret
 
 /*
